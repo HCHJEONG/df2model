@@ -1,5 +1,6 @@
 # 1 word2vec 학습 자료
 # 2 PREPROC FOR 이유 / 요지 임베딩 (for 문장 추천)
+# MeCab이 설치된 df2model anaconda 가상환경에서 실행해야
 
 import re
 import os
@@ -167,7 +168,8 @@ def split_sentence_phrase(df, field, num_workers, sen_phr_pair, phrase_also):
 
         try:
             ss = kss.split_sentences(doc,
-                                        backend="auto",
+                                        backend="mecab",
+                                        # backend="auto",
                                         num_workers=num_workers,
                                         )
             # ss = kiwi.split_into_sents(df['reasoning'].iloc[k])
