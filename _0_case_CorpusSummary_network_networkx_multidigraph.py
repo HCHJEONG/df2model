@@ -92,6 +92,16 @@ def get_case_full_no(text):  # from 'case_full_no' field in both dataframes
           ii = ii[:ii.rfind('(동지')]
         elif '(항소' in ii.strip():
           ii = ii[:ii.rfind('(항소')]
+        elif '(요형' in ii.strip():
+          ii = ii[:ii.rfind('(요형')]
+        elif '(요민' in ii.strip():
+          ii = ii[:ii.rfind('(요민')]
+        elif '(대법원판결요지집' in ii.strip():
+          ii = ii[:ii.rfind('(대법원판결요지집')]
+        elif '(판례카아드' in ii.strip():
+          ii = ii[:ii.rfind('(판례카아드')]
+        elif '(판결요지집' in ii.strip():
+          ii = ii[:ii.rfind('(판결요지집')]
         elif '판결)' in ii.strip():
           ii = ii[:ii.rfind(')')]
         else:
@@ -159,6 +169,16 @@ def get_case_full_no_list(text):  # from 'precedents' field in both dataframes
             ii = ii[:ii.rfind('(20')]
           elif '(19' in ii.strip():
             ii = ii[:ii.rfind('(19')]
+          elif '(요형' in ii.strip():
+            ii = ii[:ii.rfind('(요형')]
+          elif '(요민' in ii.strip():
+            ii = ii[:ii.rfind('(요민')]
+          elif '(대법원판결요지집' in ii.strip():
+            ii = ii[:ii.rfind('(대법원판결요지집')]
+          elif '(판례카아드' in ii.strip():
+            ii = ii[:ii.rfind('(판례카아드')]
+          elif '(판결요지집' in ii.strip():
+            ii = ii[:ii.rfind('(판결요지집')]
 
           elif '판결)' in ii.strip():
             ii = ii[:ii.rfind(')')]
@@ -292,7 +312,7 @@ if __name__ == "__main__":
       print(summaryGraph.number_of_edges())
       print()
 
-      input('graphSummary save?')
+      input('press any key to save graphSummary...')
       if not (os.path.isdir(f'.//model//{date_str}//')):
           os.makedirs(os.path.join(f'.//model//{date_str}//'))
       with open(f'.//model//{date_str}//graphSummary.pickle', 'wb') as f:
@@ -346,7 +366,7 @@ if __name__ == "__main__":
       print(corpusGraph.number_of_edges())
       print()
       
-      input('graphCorpus save?')
+      input('press any key to save graphCorpus...')
       if not (os.path.isdir(f'.//model//{date_str}//')):
           os.makedirs(os.path.join(f'.//model//{date_str}//'))
       with open(f'.//model//{date_str}//graphCorpus.pickle', 'wb') as f:
