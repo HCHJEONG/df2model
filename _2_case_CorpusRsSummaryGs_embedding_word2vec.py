@@ -411,7 +411,7 @@ class Lines2Model():
     def sentences2vec(self, sentences, vsize): 
         
         print(f'vsize: {vsize}')
-        # 아래에서 여러 번 반복문이 실행되는 것으로 보임
+        # 아래에서 여러 번 반복문이 실행되는 것으로 보임 iter default 5
         model = word2vec.Word2Vec(sentences=sentences, size=vsize, workers=self.workers)
         # def __init__(self, sentences=None, corpus_file=None, size=100, alpha=0.025, window=5, min_count=5,
         #         max_vocab_size=None, sample=1e-3, seed=1, workers=3, min_alpha=0.0001,
