@@ -86,20 +86,20 @@ class Lines2Model():
                 tasks.append([lines, engine])
 
             #### doing single processing ####
-            # preproc, engine_ = self.sentences_preproc([lines, engine])
+            preproc, engine_ = self.sentences_preproc([lines, engine])
             
             #### doing multiprocessing ####
-            jobs_finished = parmap.map(
-                self.sentences_preproc, 
-                tasks, 
-                pm_pbar=True, 
-                pm_processes=self.num_cores)
+            # jobs_finished = parmap.map(
+            #     self.sentences_preproc, 
+            #     tasks, 
+            #     pm_pbar=True, 
+            #     pm_processes=self.num_cores)
             
-            preproc = []
-            engine_ = ''
-            for result in jobs_finished:
-                preproc.extend(result[0])
-                engine_ = result[1]
+            # preproc = []
+            # engine_ = ''
+            # for result in jobs_finished:
+            #     preproc.extend(result[0])
+            #     engine_ = result[1]
             
             self.save(preproc, re.findall('[a-zA-Z]+', listOfDicFilePath)[-2], engine_, vsize, "preproc", date_str)
             #==========#
