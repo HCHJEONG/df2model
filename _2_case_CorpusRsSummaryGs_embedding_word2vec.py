@@ -75,15 +75,17 @@ class Lines2Model():
 
             # divided = np.array_split(lines, self.num_cores)
             # lineslist = [x.tolist() for x in divided]
-            lineslist = []
-            chunk = int(len(lines)/self.num_cores)
-            for i in range(self.num_cores+1):
-                lineslist.append(lines[i*chunk:(i+1)*chunk])
 
-            tasks = []
+            #### doing multiprocessing ####
+            # lineslist = []
+            # chunk = int(len(lines)/self.num_cores)
+            # for i in range(self.num_cores+1):
+            #     lineslist.append(lines[i*chunk:(i+1)*chunk])
+
+            # tasks = []
             
-            for lines in lineslist:
-                tasks.append([lines, engine])
+            # for lines in lineslist:
+            #     tasks.append([lines, engine])
 
             #### doing single processing ####
             preproc, engine_ = self.sentences_preproc([lines, engine])
@@ -178,6 +180,7 @@ class Lines2Model():
         okt = Okt()
         kkma = Kkma()
 
+        print(lines[0])
         if len(lines[0])==2:
           for line, cname in tqdm.tqdm(lines, dynamic_ncols=True):
             try:
