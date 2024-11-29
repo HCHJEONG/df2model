@@ -447,8 +447,8 @@ if __name__ == '__main__':
     # pproc_filepath = './model/preproc_word2vec_from_reasoning.preproc'
     preproc_filepath_list = [
         None, 
-        # None
-        f'.//model//{date_str}//word2vec_from_listForCaseSentenceForreasoning_with_Nori_with_512.preproc'
+        None
+        # f'.//model//{date_str}//word2vec_from_listForCaseSentenceForreasoning_with_Nori_with_512.preproc'
     ] # enumerate glob glob 순서가 일치해야 함 주의!
     engine = "Nori" # Kkma Okt Nori
     active_cutoff_rate = 0.00001 
