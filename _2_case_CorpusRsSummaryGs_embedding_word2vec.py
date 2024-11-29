@@ -412,7 +412,7 @@ class Lines2Model():
         
         print(f'vsize: {vsize}')
         # 아래에서 여러 번 반복문이 실행되는 것으로 보임 iter default 5
-        model = word2vec.Word2Vec(sentences=sentences, size=vsize, workers=self.workers)
+        model = word2vec.Word2Vec(sentences=sentences, vector_size=vsize, workers=self.workers)
         # def __init__(self, sentences=None, corpus_file=None, size=100, alpha=0.025, window=5, min_count=5,
         #         max_vocab_size=None, sample=1e-3, seed=1, workers=3, min_alpha=0.0001,
         #         sg=0, hs=0, negative=5, ns_exponent=0.75, cbow_mean=1, hashfxn=hash, iter=5, null_word=0,
@@ -445,7 +445,11 @@ if __name__ == '__main__':
     vsize = 512
     workers = 3
     # pproc_filepath = './model/preproc_word2vec_from_reasoning.preproc'
-    preproc_filepath_list = [None, None] # enumerate glob glob 순서가 일치해야 함 주의!
+    preproc_filepath_list = [
+        None, 
+        # None
+        f'.//model//{date_str}//word2vec_from_listForCaseSentenceForreasoning_with_Nori_with_512.preproc'
+    ] # enumerate glob glob 순서가 일치해야 함 주의!
     engine = "Nori" # Kkma Okt Nori
     active_cutoff_rate = 0.00001 
     # 문장 10000개라면 1번만 출현한 단어는 제외 / 문장 백만개라면 100번도 출현하지 않은 단어는 제외
@@ -457,6 +461,9 @@ if __name__ == '__main__':
         print()
         print(listOfDicFilePath)
         # listOfDicFilePath = str(listOfDicFilePath)
+        answer = input('skip?(yes/no)')
+        if answer=='yes':
+            continue
 
         print("# 데이터프레임 준비")
         listOfDic_for_corpus = pd.read_pickle(listOfDicFilePath)
