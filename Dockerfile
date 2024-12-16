@@ -35,7 +35,6 @@ ENV TZ=Asia/Seoul
 
 ENTRYPOINT ["gunicorn", "--timeout=2000", "--bind", "0.0.0.0:5001", "wsgi:app"]
 
-# CMD ["gunicorn", "pragmatic.wsgi", "--bind", "0.0.0.0:8000"]
 # ENTRYPOINT ["bin/sh", "-c", "gunicorn", "--timeout=2000", "--bind", "0.0.0.0:5001", "wsgi:app"]
 
 # 아래는 오류
