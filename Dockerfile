@@ -33,4 +33,7 @@ COPY wsgi.py wsgi.py
 
 ENV TZ=Asia/Seoul
 
-ENTRYPOINT ["gunicorn", "--timeout" "2000", "--bind", "0.0.0.0:5001", "wsgi:app"]
+ENTRYPOINT ["gunicorn --timeout=2000 --bind 0.0.0.0:5001 wsgi:app"]
+
+# ENTRYPOINT ["bin/sh", "-c", "gunicorn", "--timeout=2000", "--bind", "0.0.0.0:5001", "wsgi:app"]
+# ENTRYPOINT ["gunicorn", "--timeout" "2000", "--bind", "0.0.0.0:5001", "wsgi:app"]
