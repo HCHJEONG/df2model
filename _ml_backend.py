@@ -51,7 +51,7 @@ else:
   es = Elasticsearch(
     ELASTIC_HOST+":"+ELASTIC_PORT,
   ) 
-print("\nelasticsearch DB infomation...")   
+print("\nelasticsearch DB information: ")   
 try: 
   print(es.info())
   print(es.cat.indices())
@@ -145,11 +145,11 @@ except Exception as e:
   # See https://github.com/RaRe-Technologies/gensim/wiki/Migrating-from-Gensim-3.x-to-4
 print()
 
-print("doc2vecmodel loading...")
+print("doc2vec model loading...")
 try:
     with open(D2VMODEL_FILEPATH, 'rb') as f:
         model_dv = pickle.load(f)
-    print("doc2vecmodel loaded")
+    print("doc2vec model loaded")
 except:
     print("There is no saved doc2vec model file locally...")
 print()
@@ -174,11 +174,11 @@ except:
     print("There is no saved preproc doc2vec joined reason pickle file locally...")
 print()
 
-print("doc2vecmodel ccase loading...")
+print("doc2vec model ccase loading...")
 try:
     with open(D2VMODEL_CCASE_FILEPATH, 'rb') as f:
         model_dv_ccase = pickle.load(f)
-    print("doc2vecmodel ccase loaded")
+    print("doc2vec model ccase loaded")
 except:
     print("There is no saved doc2vec ccase model file locally...")
 print()
@@ -203,11 +203,11 @@ except:
     print("There is no saved preproc doc2vec ccase joined reason pickle file locally...")
 print()
 
-print("doc2vecmodel csummary loading...")
+print("doc2vec model csummary loading...")
 try:
   with open(D2VMODEL_CSUMMARY_FILEPATH, 'rb') as f:
       model_dv_csummary = pickle.load(f)
-  print("doc2vecmodel csummary loaded")
+  print("doc2vec model csummary loaded")
 except:
   print("There is no saved doc2vec csummary model file locally...")
 print()
@@ -726,8 +726,8 @@ def keywords_query(tupleList):
     global word2vec_wordList
     global numOfrecommended
     
-    print("inside ml backend kwyords query func, keywords for kwd1:")
-    print(tupleList)
+    # print("inside ml backend kwyords query func, keywords for kwd1:")
+    # print(tupleList)
     listFromTuple = []
     my_list = []
     for word in tupleList:
@@ -744,8 +744,8 @@ def keywords_query(tupleList):
       res = es.indices.analyze(index = 'nori', body = body_dict, headers=headers_dict)
       # print('keywords query - res from es analyze, res: ', res)
       jsn =  res.body  # es client v 8.7 + es db v 8.7
-      print("keywords query analyzed by nori: ")
-      pprint(jsn)
+      # print("keywords query analyzed by nori: ")
+      # pprint(jsn)
       tokenized = []
       for xdict in jsn['detail']['tokenfilters']:
         if xdict['name'] == 'my_posfilter':
@@ -755,15 +755,15 @@ def keywords_query(tupleList):
       for token in tokenized:        
         if token in word2vec_wordList:
             listFromTuple.append(token)
-    print(listFromTuple)
+    # print(listFromTuple)
 
     if len(listFromTuple) != 0:
       result = model_wv.wv.most_similar(
           positive = listFromTuple,  
           topn=numOfrecommended
         )
-      print("result from w2v model sim:")
-      print(result)
+      # print("result from w2v model sim:")
+      # print(result)
       loop = numOfrecommended if numOfrecommended <= len(result) else len(result)
       for n in range(loop):
         my_list.append({'keyword': result[n][0], 'sim': result[n][1], 'no': n+1})
