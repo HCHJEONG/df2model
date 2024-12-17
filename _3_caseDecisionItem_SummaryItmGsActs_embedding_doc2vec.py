@@ -210,7 +210,8 @@ if __name__ == '__main__':
     print("# doc2vec example")
     print(sentences[randomNo][0])
     print(sentences[randomNo][1])
-    result = doc2vec_model.docvecs.most_similar(positive = [doc2vec_model.infer_vector(sentences[randomNo][1])], topn=3)
+    # result = doc2vec_model.docvecs.most_similar(positive = [doc2vec_model.infer_vector(sentences[randomNo][1])], topn=3)
+    result = doc2vec_model.dv.most_similar(positive = [doc2vec_model.infer_vector(sentences[randomNo][1])], topn=3)
     print('\nresult: ')
     print(result)
 

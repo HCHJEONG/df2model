@@ -7,7 +7,6 @@ from pprint import pprint
 from dotenv import load_dotenv
 load_dotenv()
 
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from elasticsearch import Elasticsearch
 
 import requests
@@ -18,7 +17,9 @@ from flask import Flask, jsonify, request
 from flask_restful import Api, Resource, reqparse
 from flask_cors import CORS
 
-import gensim # 3.8.1 version with python 3.8.11 / 3.7.16
+import gensim 
+# (old) 3.8.1 version with python 3.8.11 / 3.7.16
+# (202412~) 4.3.0 version with python 3.8.11 # https://github.com/piskvorky/gensim/wiki/Migrating-from-Gensim-3.x-to-4
 # from gensim.models import word2vec
 
 import nltk # with python 3.8.11 / 3.7.16
@@ -27,6 +28,7 @@ nltk.download('punkt')
 import networkx as nx
 from networkx.algorithms import traversal
 
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM # t5 False 현재 미사용
 
 numOfrecommended = 15 # api 1-4/2/3/4/5/6
 
@@ -84,7 +86,9 @@ graphSummary = None
 graphSummaryReversed = None
 GRAPHCORPUS_FILEPATH = './model/graphCorpus.pickle'
 graphCorpus = None
-    
+
+# 모델 성능에 문제가 있어 미사용 start
+phrase = False
 model_dvp = None
 phraseserial = None
 vsize = 512
@@ -92,16 +96,17 @@ cname = 'cname'
 engine = 'Nori'
 source = 'SummaryGsPhrases'
 modelpfilepath = './model/doc2vec_from_'+source+'_with_'+engine+'_with_'+str(vsize)+'.model'
-phraseserialfilepath = './model/doc2vec_from_'+source+'_with_'+engine+'_with_'+str(vsize)+'.phraseserial' 
+phraseserialfilepath = './model/doc2vec_from_'+source+'_with_'+engine+'_with_'+str(vsize)+'.phraseserial'
 
 t5 = False
 model_t5_dir = "lcw99/t5-base-korean-text-summary"
 max_input_length = 512
 model_t5_pretrained = "./model/t5-base-korean-text-summary"
+# 모델 성능에 문제가 있어 미사용 end
 
 
 # model / preproc loading
-print("model loading...\n")    
+print("models loading...\n")    
 print("gensim version: ")
 print(gensim.__version__)
 print()
@@ -112,12 +117,13 @@ print("w2v model loading...")
 try:
   with open(W2VMODEL_FILEPATH, 'rb') as f:
       model_wv = pickle.load(f)
+  print("word2vec model loaded: ")
   print(dir(model_wv))
-  print("word2vec model loaded")
 except:
   print("There is no saved model locally...")
 print()
 
+print("word2vec model word list retrieving...")
 try:
   # word2vec model word list retrieving
   # print(dir(model_wv.wv))
@@ -125,19 +131,21 @@ try:
   # Use KeyedVector's .key_to_index dict, .index_to_key list, and methods .get_vecattr(key, attr) and .set_vecattr(key, attr, new_val) 
   # print(type(model_wv.wv.get_vecattr()))
   # print(model_wv.wv.index_to_key[:20])
-  print("word2vec model word list retrieving...")
   # word2vec_wordList = model_wv.wv.index_to_key
-  word2vec_wordList = list(model_wv.wv.vocab.keys())
-  print(word2vec_wordList[:40])
-
+  # word2vec_wordList = list(model_wv.wv.vocab.keys())
+  word2vec_wordList = list(model_wv.wv.key_to_index.keys())
+  print("word2vec model word list retrieved: ")
+  print(word2vec_wordList[:30])
 except Exception as e:
-    print(e)    
-    # The vocab attribute was removed from KeyedVector in Gensim 4.0.0.
-    # Use KeyedVector's .key_to_index dict, .index_to_key list, and methods .get_vecattr(key, attr) and .set_vecattr(key, attr, new_val) instead.
-    # See https://github.com/RaRe-Technologies/gensim/wiki/Migrating-from-Gensim-3.x-to-4
-    print("There is no wordlist in the model...")
+  print("There is no wordlist in the model...")
+  print("cause: ")
+  print(e)    
+  # The vocab attribute was removed from KeyedVector in Gensim 4.0.0.
+  # Use KeyedVector's .key_to_index dict, .index_to_key list, and methods .get_vecattr(key, attr) and .set_vecattr(key, attr, new_val) instead.
+  # See https://github.com/RaRe-Technologies/gensim/wiki/Migrating-from-Gensim-3.x-to-4
 print()
 
+print("doc2vecmodel loading...")
 try:
     with open(D2VMODEL_FILEPATH, 'rb') as f:
         model_dv = pickle.load(f)
@@ -146,7 +154,7 @@ except:
     print("There is no saved doc2vec model file locally...")
 print()
 
-print("preproc loading...")
+print("doc2vec preproc loading...")
 # with open('../df2model/model/preproc_doc2vec.preproc', 'rb') as f:
 #     preproc = pickle.load(f) # (사건번호, 단어 리스트) 튜플의 리스트
 # df_d2v_tagtable = pd.DataFrame(preproc, columns = ['case_full_no', 'reasoning'])
@@ -160,12 +168,13 @@ try:
   # with open('./model/preproc_doc2vec_joined_reason.pickle', 'rb') as f:
     d2v_tagtable = pickle.load(f) 
     df_d2v_tagtable = pd.DataFrame(d2v_tagtable, columns=['case_full_no','token_list'])
+  print("preproc loaded: ")
   print(df_d2v_tagtable.head(5))
-  print("preproc loaded")
 except:
     print("There is no saved preproc doc2vec joined reason pickle file locally...")
 print()
 
+print("doc2vecmodel ccase loading...")
 try:
     with open(D2VMODEL_CCASE_FILEPATH, 'rb') as f:
         model_dv_ccase = pickle.load(f)
@@ -188,18 +197,19 @@ try:
   # with open('./model/preproc_doc2vec_joined_reason.pickle', 'rb') as f:
     d2v_ccase_tagtable = pickle.load(f) 
     df_d2v_ccase_tagtable = pd.DataFrame(d2v_ccase_tagtable, columns=['caseno','token_list'])
+  print("preproc ccase loaded: ")
   print(df_d2v_ccase_tagtable.head(5))
-  print("preproc ccase loaded")
 except:
     print("There is no saved preproc doc2vec ccase joined reason pickle file locally...")
 print()
 
+print("doc2vecmodel csummary loading...")
 try:
-    with open(D2VMODEL_CSUMMARY_FILEPATH, 'rb') as f:
-        model_dv_csummary = pickle.load(f)
-    print("doc2vecmodel csummary loaded")
+  with open(D2VMODEL_CSUMMARY_FILEPATH, 'rb') as f:
+      model_dv_csummary = pickle.load(f)
+  print("doc2vecmodel csummary loaded")
 except:
-    print("There is no saved doc2vec csummary model file locally...")
+  print("There is no saved doc2vec csummary model file locally...")
 print()
 
 print("preproc csummary loading...")
@@ -216,8 +226,8 @@ try:
   # with open('./model/preproc_doc2vec_joined_reason.pickle', 'rb') as f:
     d2v_csummary_tagtable = pickle.load(f) 
     df_d2v_csummary_tagtable = pd.DataFrame(d2v_csummary_tagtable, columns=['case_full_no_no','token_list'])
+  print("preproc csummary loaded:")
   print(df_d2v_csummary_tagtable.head(5))
-  print("preproc csummary loaded")
 except:
     print("There is no saved preproc doc2vec csummary joined reason pickle file locally...")
 print()
@@ -230,30 +240,32 @@ try:
     graphSummaryReversed = graphSummary.reverse()
   with open(GRAPHCORPUS_FILEPATH, 'rb') as f:
     graphCorpus = pickle.load(f)
-  print()
+  print("graph nexworkX loaded")
 except:
   print("There is no saved nexworkX pickle locally...")
 print()
 
-try:
-  with open(modelpfilepath, 'rb') as f:
-    model_dvp = pickle.load(f)
-  print("doc2vecmodel phrase loaded")
-except:
-  print("There is no saved doc2vec model phrase locally...")
-print()
+if phrase:
+  print('doc2vecmodel phrase loading...')
+  try:
+    with open(modelpfilepath, 'rb') as f:
+      model_dvp = pickle.load(f)
+    print("doc2vecmodel phrase loaded")
+  except:
+    print("There is no saved doc2vec model phrase locally...")
+  print()
 
-print("preproc phrase loading...")
-try:
-  # should be columns = ['case_full_no', 'reasoning']
-  with open(phraseserialfilepath, 'rb') as f:
-  # with open('./model/preproc_doc2vec_joined_reason.pickle', 'rb') as f:
-    phraseserial = pickle.load(f) 
-  print(phraseserial[:10])
-  print("preproc phrase loaded")
-except:
-  print("There is no saved preproc doc2vec phrase pickle locally...")
-print()
+  print("preproc phrase loading...")
+  try:
+    # should be columns = ['case_full_no', 'reasoning']
+    with open(phraseserialfilepath, 'rb') as f:
+    # with open('./model/preproc_doc2vec_joined_reason.pickle', 'rb') as f:
+      phraseserial = pickle.load(f) 
+    print("preproc phrase loaded:")
+    print(phraseserial[:5])
+  except:
+    print("There is no saved preproc doc2vec phrase pickle locally...")
+  print()
 
 if t5:
   print("model t5 and tokenizer loading...")
@@ -714,8 +726,8 @@ def keywords_query(tupleList):
     global word2vec_wordList
     global numOfrecommended
     
-    # print("inside ml backend kwyords query func, keywords for kwd1:")
-    # print(tupleList)
+    print("inside ml backend kwyords query func, keywords for kwd1:")
+    print(tupleList)
     listFromTuple = []
     my_list = []
     for word in tupleList:
@@ -730,8 +742,9 @@ def keywords_query(tupleList):
         "explain": True, 
       }
       res = es.indices.analyze(index = 'nori', body = body_dict, headers=headers_dict)
-      # print('res from es analyze, res: ', res)
+      # print('keywords query - res from es analyze, res: ', res)
       jsn =  res.body  # es client v 8.7 + es db v 8.7
+      print("keywords query analyzed by nori: ")
       pprint(jsn)
       tokenized = []
       for xdict in jsn['detail']['tokenfilters']:
@@ -742,13 +755,15 @@ def keywords_query(tupleList):
       for token in tokenized:        
         if token in word2vec_wordList:
             listFromTuple.append(token)
-    # print(listFromTuple)
+    print(listFromTuple)
 
     if len(listFromTuple) != 0:
       result = model_wv.wv.most_similar(
           positive = listFromTuple,  
           topn=numOfrecommended
         )
+      print("result from w2v model sim:")
+      print(result)
       loop = numOfrecommended if numOfrecommended <= len(result) else len(result)
       for n in range(loop):
         my_list.append({'keyword': result[n][0], 'sim': result[n][1], 'no': n+1})
@@ -815,7 +830,8 @@ def relcases_query(case_no_List):
     # print(pList)
     # result = model_dv.docvecs.most_similar(positive = pList, topn=numOfrecommended)
     if len(pList) > 0: # 원소 개수
-      result = model_dv.docvecs.most_similar(positive = pList, topn=numOfrecommended)
+      # result = model_dv.docvecs.most_similar(positive = pList, topn=numOfrecommended)
+      result = model_dv.dv.most_similar(positive = pList, topn=numOfrecommended)
     else:
       return pd.DataFrame([])
     # print("type of result from <model.dv.most_similar> func:") 
@@ -886,7 +902,8 @@ def relccases_query(caseno_List):
     # result = model_dv.docvecs.most_similar(positive = pList, topn=numOfrecommended)
     
     if len(pList) > 0: # 원소 개수
-      result = model_dv_ccase.docvecs.most_similar(positive = pList, topn=numOfrecommended)
+      # result = model_dv_ccase.docvecs.most_similar(positive = pList, topn=numOfrecommended)
+      result = model_dv_ccase.dv.most_similar(positive = pList, topn=numOfrecommended)
     else:
       return pd.DataFrame([])
     # print("type of result from <model.dv.most_similar> func:") 
@@ -973,7 +990,8 @@ def relcasesummaries_query(case_full_no_no_List):
     # print(pList)
     # result = model_dv.docvecs.most_similar(positive = pList, topn=numOfrecommended)
     try:
-      result = model_dv_csummary.docvecs.most_similar(positive = pList, topn=numOfrecommended)
+      # result = model_dv_csummary.docvecs.most_similar(positive = pList, topn=numOfrecommended)
+      result = model_dv_csummary.dv.most_similar(positive = pList, topn=numOfrecommended)
     except Exception as e:
       print(e)
       result= []
@@ -1049,7 +1067,8 @@ def phrases_query(phrase_):
     # print(tokenized)
     rst = model_dvp.infer_vector(tokenized)
     # print(rst)
-    result = model_dvp.docvecs.most_similar(positive = [rst], topn=numOfrecommended)
+    # result = model_dvp.docvecs.most_similar(positive = [rst], topn=numOfrecommended)
+    result = model_dvp.dv.most_similar(positive = [rst], topn=numOfrecommended)
     # print(result)
     
     my_list = []
