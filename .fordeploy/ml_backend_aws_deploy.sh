@@ -71,5 +71,5 @@ echo "transferring docker image tar file: ml_backend${IMAGE_TIMESTAMP}.tar ended
 # cleaning
 # cd ../
 rm ./.env
-# rm ./toshiba_nginx_ca.crt
+rm ./toshiba_nginx_ca.crt
 rm ./*.tar
