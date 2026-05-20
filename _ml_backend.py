@@ -1,3 +1,4 @@
+
 import os
 import random
 import pickle
@@ -1018,7 +1019,8 @@ class PHRASES(Resource):
     
     # GET
     # kwd1 - d2v embedding에 의한 유사 phrase 검색을 위한 phrase token들이 "_"로 구분된 string
-    # http://localhost:5001/phrases/강제집행을_위한_집행권원은 -> 관련 문구
+    # Deprecated: GET http://localhost:5001/phrases/강제집행을_위한_집행권원은
+    # Current: POST http://localhost:5001/recommendedphrases {"input": "강제집행을 위한 집행권원은"}
     def get(self, phrase): 
         # print("relcases kwd1: ", kwd1)
         phrase_ = phrase.replace('_', ' ')
@@ -1441,7 +1443,7 @@ cors = CORS(app, resources={
   r"/relcases/*": {"origin": "*"},
   r"/relccases/*": {"origin": "*"},
   r"/relcasesummaries/*": {"origin": "*"},
-  r"/phrases/*": {"origin": "*"},
+  r"/recommendedphrases": {"origin": "*"},
   r"/hashtags": {"origin": "*"},
   r"/summary": {"origin": "*"},
   r"/casenetwork/*": {"origin": "*"},
@@ -1481,8 +1483,8 @@ api.add_resource(RELCASESUMMARIES, '/relcasesummaries/<string:kwd1>')
 # _caseDecisionItem_SummaryItmGsActs_embedding_doc2vec.py
 # AttributeError: 'Doc2Vec' object has no attribute 'neg_labels'
 
-api.add_resource(PHRASES, '/phrases/<string:phrase>')
-# http://localhost:5001/phrases/강제집행에_따른_부동산의_명도에_있어서
+api.add_resource(PHRASES, '/recommendedphrases')
+# POST http://localhost:5001/recommendedphrases {"input": "강제집행에 따른 부동산의 명도에 있어서"}
 # doc2vec
 # __case_SummaryGsPhrases_embedding_doc2vec.py
 # AttributeError: 'Doc2Vec' object has no attribute 'neg_labels'
