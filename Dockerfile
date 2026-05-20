@@ -1,7 +1,7 @@
 FROM python:3.8.11 AS builder
 WORKDIR /app
 
-#RUN pip install pandas\
+# RUN pip install pandas\
 #                gensim==3.8 \
 #                konlpy \
 #                python-dotenv \

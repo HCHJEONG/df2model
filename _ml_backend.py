@@ -24,7 +24,10 @@ import gensim
 # from gensim.models import word2vec
 
 import nltk # with python 3.8.11 / 3.7.16
-nltk.download('punkt')
+try:
+  nltk.data.find('tokenizers/punkt')
+except LookupError:
+  nltk.download('punkt', quiet=True)
 
 import networkx as nx
 from networkx.algorithms import traversal
@@ -37,23 +40,25 @@ numOfrecommended = 15 # api 1-4/2/3/4/5/6
 ELASTIC_CA_CERTS_FILEPATH = os.getenv("ELASTIC_CA_CERTS_FILEPATH")
 ELASTIC_ID = os.getenv("ELASTIC_ID")
 ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
-ELASTIC_HOST = os.getenv("ELASTIC_HOST")
-ELASTIC_PORT = os.getenv("ELASTIC_PORT")
-ELASTIC_CA_CERTS_FILEPATH = os.getenv("ELASTIC_CA_CERTS_FILEPATH")
-if "https" in ELASTIC_HOST:
-  es = Elasticsearch(
-    ELASTIC_HOST+":"+ELASTIC_PORT,
-    # cloud_id=CLOUD_ID,
-    ca_certs=ELASTIC_CA_CERTS_FILEPATH,
-    # basic_auth=("elastic", ELASTIC_PASSWORD)
-    http_auth=(ELASTIC_ID, ELASTIC_PASSWORD)
-  )
-else:
-  es = Elasticsearch(
-    ELASTIC_HOST+":"+ELASTIC_PORT,
-  ) 
+ELASTIC_HOST = os.getenv("ELASTIC_HOST") or ""
+ELASTIC_PORT = os.getenv("ELASTIC_PORT") or ""
+
+es = None
+if ELASTIC_HOST and ELASTIC_PORT:
+  if "https" in ELASTIC_HOST:
+    es = Elasticsearch(
+      ELASTIC_HOST + ":" + ELASTIC_PORT,
+      ca_certs=ELASTIC_CA_CERTS_FILEPATH,
+      http_auth=(ELASTIC_ID, ELASTIC_PASSWORD)
+    )
+  else:
+    es = Elasticsearch(
+      ELASTIC_HOST + ":" + ELASTIC_PORT,
+    ) 
 print("\nelasticsearch DB information: ")   
 try: 
+  if es is None:
+    raise RuntimeError("ELASTIC_HOST/ELASTIC_PORT is not configured")
   print(es.info())
   print(es.cat.indices())
 except Exception as e:
@@ -510,10 +515,13 @@ class ECASE(Resource):
       aa = ECASELIST(id=id,pw=pw)
       aa.start()
       # print(aa.page_lookup_res_list)
-      if self.page_lookup_res_list[0]['meta']['err'] == "true":
-        return jsonify({"error": json.dumps(self.page_lookup_res_list)})
-      else:
-        return jsonify({"ecaselist": aa.page_lookup_res_list}) 
+      page_lookup_res_list = aa.page_lookup_res_list
+      if (
+        page_lookup_res_list
+        and page_lookup_res_list[0].get('meta', {}).get('err') == "true"
+      ):
+        return jsonify({"error": json.dumps(page_lookup_res_list)})
+      return jsonify({"ecaselist": page_lookup_res_list}) 
       
     except Exception as e:
       return jsonify({"error": str(e)})   
@@ -592,6 +600,10 @@ class NORITOKENS(Resource):
     # print('inside noritokens put flask api...')
     # print(request)
     # print(dir(request))
+    if es is None:
+        response = jsonify({"detail": "elasticsearch is not configured"})
+        response.status_code = 503
+        return response
     try:
         settings = {
             "settings": {
@@ -681,6 +693,10 @@ class NORITOKENS(Resource):
       # print(request.get_json())
       # print(type(request.get_json())) # error
       # print('break point passed')
+      if es is None:
+          response = jsonify({"detail": "elasticsearch is not configured"})
+          response.status_code = 503
+          return response
       try:
           print('requested analyzer for tokenizing: ')
           print("nori_"+request.get_json()['decompound']+request.get_json()['custom'])
@@ -703,6 +719,10 @@ class KEYWORDS(Resource):
     # kwd1 - w2v embedding에 의한 유사 키워드 검색을 위한 키워드들이 "_"로 구분된 string
     # http://localhost:5001/keywords/이행지체_이행불능  관련 검색어 추천        
     def get(self, kwd1): 
+      if es is None:
+        response = jsonify({"error": "elasticsearch is not configured"})
+        response.status_code = 503
+        return response
       # print("KEYWORDS kwd1: ", kwd1)
       tupleList = tuple(kwd1.split("_"))
       result = keywords_query(tupleList)
@@ -1021,9 +1041,19 @@ class PHRASES(Resource):
     # kwd1 - d2v embedding에 의한 유사 phrase 검색을 위한 phrase token들이 "_"로 구분된 string
     # Deprecated: GET http://localhost:5001/phrases/강제집행을_위한_집행권원은
     # Current: POST http://localhost:5001/recommendedphrases {"input": "강제집행을 위한 집행권원은"}
-    def get(self, phrase): 
-        # print("relcases kwd1: ", kwd1)
-        phrase_ = phrase.replace('_', ' ')
+    def get(self): 
+        if (not phrase) or (model_dvp is None) or (phraseserial is None):
+            response = jsonify({"error": "recommendedphrases model is disabled or not loaded"})
+            response.status_code = 503
+            return response
+
+        phrase_input = request.args.get('input')
+        if not phrase_input:
+            response = jsonify({"error": "missing input"})
+            response.status_code = 400
+            return response
+
+        phrase_ = phrase_input.replace('_', ' ')
         result = phrases_query(phrase_)
         
         # result type: DataFrame
@@ -1038,6 +1068,24 @@ class PHRASES(Resource):
         jsn = jsonify(result_dict)
         # print('relcases json converted: ', type(jsn))
         return jsn # dict를 json으로 변환하여 response
+
+    def post(self):
+        if (not phrase) or (model_dvp is None) or (phraseserial is None):
+            response = jsonify({"error": "recommendedphrases model is disabled or not loaded"})
+            response.status_code = 503
+            return response
+
+        payload = request.get_json(silent=True) or {}
+        phrase_input = payload.get('input')
+        if not phrase_input:
+            response = jsonify({"error": "missing input"})
+            response.status_code = 400
+            return response
+
+        phrase_ = phrase_input.replace('_', ' ')
+        result = phrases_query(phrase_)
+        result_dict = result.transpose().to_dict()
+        return jsonify(result_dict)
 # 현재 모델 성능에 심각한 문제가 있어 미사용중임
 def phrases_query(phrase_):
 
@@ -1271,15 +1319,36 @@ def hashtags(text):
 
 class SUMMARY(Resource):
     
-    def get(self, input): 
+    def get(self, input=None): 
+        if not t5:
+            response = jsonify({"error": "summary model is disabled or not loaded"})
+            response.status_code = 503
+            return response
+
+        if input is None:
+            input = request.args.get('input')
+        if not input:
+            response = jsonify({"error": "missing input"})
+            response.status_code = 400
+            return response
+
         text = input.replace('_', ' ')
         summary = summary_query(text)
+        if not summary:
+            response = jsonify({"error": "summary model is disabled or not loaded"})
+            response.status_code = 503
+            return response
         
         # Python Dictionary to <class 'flask.wrappers.Response'>
         jsn = jsonify( {"summary": summary})
         return jsn # dict를 json으로 변환하여 response
     
     def post(self):
+      if not t5:
+        response = jsonify({"error": "summary model is disabled or not loaded"})
+        response.status_code = 503
+        return response
+
       # header = {
       #         "Content-type": "application/json",
       #         "Accept":"application/json" 
@@ -1289,9 +1358,18 @@ class SUMMARY(Resource):
       #     }
       # print(dir(request))
       # print(request.get_json())
-      input = request.get_json()['input']
+      payload = request.get_json(silent=True) or {}
+      input = payload.get('input')
+      if not input:
+        response = jsonify({"error": "missing input"})
+        response.status_code = 400
+        return response
       text = input.replace('_', ' ')
       summary = summary_query(text)
+      if not summary:
+        response = jsonify({"error": "summary model is disabled or not loaded"})
+        response.status_code = 503
+        return response
       
       # Python Dictionary to <class 'flask.wrappers.Response'>
       jsn = jsonify( {"summary": summary})
@@ -1303,6 +1381,11 @@ def summary_query(text):
     global tokenizer
     global model_t5
     global max_input_length
+
+    if ('tokenizer' not in globals()) or ('model_t5' not in globals()):
+      return ""
+    if (tokenizer is None) or (model_t5 is None):
+      return ""
 
     # print('\ninside get summary api:')
     # print(text)
